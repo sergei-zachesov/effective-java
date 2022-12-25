@@ -328,3 +328,22 @@ static boolean isRomanNumeralFast(String s){
   реализующий AutoCloseable. После этого его можно применять в конструкции try-with-recurse.
 
 ## 2.9 Предпочитайте try-with-recurse использованию try-finally (Item 9)
+
+Предпочитайте try-with-recurse применению try-finally при работе с ресурсами, которые должны быть закрыты.
+Результирующий код получается короче и понятнее, а исключения, которые он генерирует, — более полезными.
+
+```java
+static void copy(String src, String dst) throws IOException {
+        try (InputStream in = new InputStream(src);
+        OutputStream out = new FileOutputStream(dst)) {
+        byte[] buf = new byte[BUFFER_SIZE];
+        int n;
+        while ((n = in.read(buf)) >= 0) {
+        out.write(buf, 0, n);
+        }
+        }
+        }
+```
+
+Оператор try-with-recurse облегчает написание корректного кода с использованием ресурсов, которые должны быть закрыты, что
+практически невозможно с помощью try-finally.

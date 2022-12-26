@@ -173,11 +173,13 @@ _Синглтон со статической фабрикой:_
 Что бы сделать эти классы сериализуемым, необходимо пометить все поля transient и предоставить метод readResolve.
 
 ```java
+class Item3 {
+  private Object readResolve() {
+    // Возвращает истенный объект
+    return INSTANCE;
+  }
+}
 
-private Object readResolve(){
-        // Возвращает истенный объект
-        return INSTANCE;
-        }
 ```
 
 _Синглтон-перечисление:_
@@ -237,8 +239,8 @@ public class SpellChecker {
 - **Повторное использование неизменяемых объектов(пулл)**
 
 ```java
-String n=new String("bikini"); // Плохо
-        String p="bikini"; // Хорошо
+String n = new String("bikini"); // Плохо
+String p = "bikini"; // Хорошо
 ```
 
 При повторном использовании, в первом случае будет создаваться новый объект, во втором использоваться старый из пула.
@@ -252,23 +254,27 @@ Boolean.valueOf(String)
 - **Кэширование тяжеловесных объектов**
 
 ```java
-public class RomanNumerals {
+class Item6 {
+  public class RomanNumerals {
     // Можно повысить производительность
     static boolean isRomanNumeralSlow(String s) {
-        return s.matches("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+      return s.matches("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
     }
+  }
 }
 ```
 
 ```java
-    // Оптимально
-private static final Pattern ROMAN=Pattern.compile(
-        "^(?=.)M*(C[MD]|D?C{0,3})"
-        +"(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+// Оптимально
+class Item6 {
+  private static final Pattern ROMAN =
+      Pattern.compile("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
 
-static boolean isRomanNumeralFast(String s){
-        return ROMAN.matcher(s).matches();
-        }
+  static boolean isRomanNumeralFast(String s) {
+    return ROMAN.matcher(s).matches();
+  }
+}
+
 ```
 
 - **Предпочитайте примитивы классам оберткам и следите за непреднамеренной автоматической упаковкой**
@@ -287,13 +293,15 @@ static boolean isRomanNumeralFast(String s){
 - **Класс управляет своей памятью.** В данном случае подойдет обнуление ссылки.
 
 ```java
-  public pop(){
-        if(size==0)
-        throw new EmptyStackException();
-        Object result=elements[--size];
-        elements[size]=null;
-        return result;
-        }
+class Item7 {
+  public pop() {
+    if (size == 0) throw new EmptyStackException();
+    Object result = elements[--size];
+    elements[size] = null;
+    return result;
+  }
+}
+
 ```
 
 Обнуление ссылки не норма, а исключение из правил - не нужно обнулять ссылку для каждого объекта.
@@ -333,16 +341,19 @@ static boolean isRomanNumeralFast(String s){
 Результирующий код получается короче и понятнее, а исключения, которые он генерирует, — более полезными.
 
 ```java
-static void copy(String src, String dst) throws IOException {
-        try (InputStream in = new InputStream(src);
+class Item9 {
+  static void copy(String src, String dst) throws IOException {
+    try (InputStream in = new InputStream(src);
         OutputStream out = new FileOutputStream(dst)) {
-        byte[] buf = new byte[BUFFER_SIZE];
-        int n;
-        while ((n = in.read(buf)) >= 0) {
+      byte[] buf = new byte[BUFFER_SIZE];
+      int n;
+      while ((n = in.read(buf)) >= 0) {
         out.write(buf, 0, n);
-        }
-        }
-        }
+      }
+    }
+  }
+}
+
 ```
 
 Оператор try-with-recurse облегчает написание корректного кода с использованием ресурсов, которые должны быть закрыты, что

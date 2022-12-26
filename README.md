@@ -25,6 +25,9 @@
     - [2.7 Избегайте устаревших ссылок (Item 7)](#27-избегайте-устаревших-ссылок-item-7)
     - [2.8 Избегайте финализаторов и очистителей (Item 8)](#28-избегайте-финализаторов-и-очистителей-item-8)
     - [2.9 Предпочитайте try-with-recurse использованию try-finally (Item 9)](#29-предпочитайте-try-with-recurse-использованию-try-finally-item-9)
+- [3. Методы, общие для всех объектов](#3-методы-общие-для-всех-объектов)
+    - [3.1 Перекрывая equals, соблюдайте общий контракт (Item 10)](#31-перекрывая-equals-соблюдайте-общий-контракт-item-10)
+    - [3.2 Всегда при перекрытии equals перекрывайте hashCode (Item 11)](#32-всегда-при-перекрытии-equals-перекрывайте-hashcode-item-11)
 
 # 2. Создание и уничтожение объектов
 
@@ -174,10 +177,10 @@ _Синглтон со статической фабрикой:_
 
 ```java
 class Item3 {
-  private Object readResolve() {
-    // Возвращает истенный объект
-    return INSTANCE;
-  }
+    private Object readResolve() {
+        // Возвращает истенный объект
+        return INSTANCE;
+    }
 }
 
 ```
@@ -239,8 +242,8 @@ public class SpellChecker {
 - **Повторное использование неизменяемых объектов(пулл)**
 
 ```java
-String n = new String("bikini"); // Плохо
-String p = "bikini"; // Хорошо
+String n=new String("bikini"); // Плохо
+        String p="bikini"; // Хорошо
 ```
 
 При повторном использовании, в первом случае будет создаваться новый объект, во втором использоваться старый из пула.
@@ -255,24 +258,24 @@ Boolean.valueOf(String)
 
 ```java
 class Item6 {
-  public class RomanNumerals {
-    // Можно повысить производительность
-    static boolean isRomanNumeralSlow(String s) {
-      return s.matches("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+    public class RomanNumerals {
+        // Можно повысить производительность
+        static boolean isRomanNumeralSlow(String s) {
+            return s.matches("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+        }
     }
-  }
 }
 ```
 
 ```java
 // Оптимально
 class Item6 {
-  private static final Pattern ROMAN =
-      Pattern.compile("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
+    private static final Pattern ROMAN =
+            Pattern.compile("^(?=.)M*(C[MD]|D?C{0,3})" + "(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$");
 
-  static boolean isRomanNumeralFast(String s) {
-    return ROMAN.matcher(s).matches();
-  }
+    static boolean isRomanNumeralFast(String s) {
+        return ROMAN.matcher(s).matches();
+    }
 }
 
 ```
@@ -294,12 +297,12 @@ class Item6 {
 
 ```java
 class Item7 {
-  public pop() {
-    if (size == 0) throw new EmptyStackException();
-    Object result = elements[--size];
-    elements[size] = null;
-    return result;
-  }
+    public pop() {
+        if (size == 0) throw new EmptyStackException();
+        Object result = elements[--size];
+        elements[size] = null;
+        return result;
+    }
 }
 
 ```
@@ -342,19 +345,59 @@ class Item7 {
 
 ```java
 class Item9 {
-  static void copy(String src, String dst) throws IOException {
-    try (InputStream in = new InputStream(src);
-        OutputStream out = new FileOutputStream(dst)) {
-      byte[] buf = new byte[BUFFER_SIZE];
-      int n;
-      while ((n = in.read(buf)) >= 0) {
-        out.write(buf, 0, n);
-      }
+    static void copy(String src, String dst) throws IOException {
+        try (InputStream in = new InputStream(src);
+             OutputStream out = new FileOutputStream(dst)) {
+            byte[] buf = new byte[BUFFER_SIZE];
+            int n;
+            while ((n = in.read(buf)) >= 0) {
+                out.write(buf, 0, n);
+            }
+        }
     }
-  }
 }
 
 ```
 
-Оператор try-with-recurse облегчает написание корректного кода с использованием ресурсов, которые должны быть закрыты, что
+Оператор try-with-recurse облегчает написание корректного кода с использованием ресурсов, которые должны быть закрыты,
+что
 практически невозможно с помощью try-finally.
+
+# 3. Методы, общие для всех объектов
+
+## 3.1 Перекрывая equals, соблюдайте общий контракт (Item 10)
+
+Когда не следует перекрывать:
+
+- Каждый экземпляр класса уникален по своей природе
+- У класса нет необходимости в проверке "логической эквивалентности"
+- Суперкласс уже переопределяет equals, и поведение суперкласса подходит для данного класса
+- Класс является закрытым или закрытым на уровне пакета, и вы уверены, что его метод equals никогда не будте вызываться
+
+Класс имеет смысл перекрывать equals, когда для него определено понятие логической эквивалентности(logical equality),
+которая не совпадает с тождественностью объектов, а метод equals в суперклассе не перекрыт. Это происходит с классами
+значениями(value class) - String, Integer и др.
+
+Требования отношения эквивалентности:
+
+- Рефлексивность: x.equals(x)==true
+- Симметричность: x.equals(y)==y.equals(x)
+- Транзитивность: x.equals(y)==y.equals(z)==z.equals(x)
+- Непротиворечивость: x.equals(y)==x.equals(y)==x.equals(y)==...
+- Отличный от null: x.equals(null)==false
+
+Рецепт хорошего equals:
+
+- Используйте оператор == для проверки того, что аргумент является ссылкой на данный объект
+- Используйте оператор instanceof для проверки того, что аргумент имеет корректный тип
+- Приводите аргумент к корректному типу
+- Для каждого "важного" поля класса убедитесь, что значение этого поля в аргументе соответствует полю данного объекта
+
+Ещё предостережения:
+
+- Всегда перекрывайте hashCode при перекрытии equals
+- Не пытайтесь быть слишком умным
+- Не подставляйте другой тип вместо Object в объявлении equals
+
+## 3.2 Всегда при перекрытии equals перекрывайте hashCode (Item 11)
+

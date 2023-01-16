@@ -50,6 +50,11 @@
     - [5.4 Предпочитайте обобщенные типы (Item 29)](#54-предпочитайте-обобщенные-типы-item-29)
     - [5.5 Предпочитайте обобщенные методы (Item 30)](#55-предпочитайте-обобщенные-методы-item-30)
     - [5.6 Используйте ограниченные символы подстановки для повышения гибкости API (Item 31)](#56-используйте-ограниченные-символы-подстановки-для-повышения-гибкости-api-item-31)
+    - [5.7 Аккуратно сочетайте обобщенные типы и переменное количество аргументов (Item 32)](#57-аккуратно-сочетайте-обобщенные-типы-и-переменное-количество-аргументов-item-32)
+    - [5.8 Применяйте безопасные с точки зрения типов гетерогенные контейнеры (Item 33)](#58-применяйте-безопасные-с-точки-зрения-типов-гетерогенные-контейнеры-item-33)
+- [6 Перечисления и аннотации](#6-перечисления-и-аннотации)
+    - [6.1 Используйте перечисление вместо констант int (Item 34)](#61-используйте-перечисление-вместо-констант-int-item-34)
+    - [6.2 Используйте поля экземпляра вместо порядковых значений (Item 35)](#62-используйте-поля-экземпляра-вместо-порядковых-значений-item-35)
 
 # 2. Создание и уничтожение объектов
 
@@ -1030,10 +1035,10 @@ public class PhysicalConstants {
 | Неограниченный тип с символом подстановки | `List<?>`                          | 26       |
 | Сырой тип                                 | `List`                             | 26       |
 | Ограниченный параметр типа                | `<E extends Number>`               | 29       |
-| Рекурсивно ограниченный тип               | `<T extends Comparable<T>>`        | **27**   |
-| Ограниченный тип с символом подстановки   | `List<? extends Number>`           | **28**   |
-| Обобщенный метод                          | `static <E> List<E> asList(E[] a)` | **27**   |
-| Токен типа                                | `String.class`                     | **29**   |
+| Рекурсивно ограниченный тип               | `<T extends Comparable<T>>`        | 30       |
+| Ограниченный тип с символом подстановки   | `List<? extends Number>`           | 31       |
+| Обобщенный метод                          | `static <E> List<E> asList(E[] a)` | 30       |
+| Токен типа                                | `String.class`                     | 33       |
 
 Использование сырых типов может привести к ошибке во время компиляции, по этому не рекомендуется их использовать. Они
 оставлены для обратной совместимости.
@@ -1136,5 +1141,327 @@ class Item27 {
 Обобщенные методы, подобно обобщенным типам, безопаснее и проще в использовании, чем методы требующие от своих клиентов
 использовать явные приведения входных параметров и возвращаемых значений.
 
+Для метода сравнения объектов в коллекции, каждый объект должен быть сопоставим с любым другим её элементом. Этом можно
+сделать с помощью рекурсивного ограничения `<E extends Comparable<E>>`.
+
 ## 5.6 Используйте ограниченные символы подстановки для повышения гибкости API (Item 31)
+
+Поскольку параметризованные типы являются инвариантными, то невозможно в коллекцию `List<Nubmer>` вставить
+объект `Integer` используя только формальный параметр типа `E`.
+
+```java
+class Item31 {
+    public void pushAll(Iterable<E> src) {
+        for (E e : src)
+            puhs(e);
+    }
+
+    public static void main(String[] args) {
+        // Integer is a subtype of Number
+        Stack<Number> numberStack = new Stack<Number>();
+        Iterable<Integer> integers =...;
+        numberStack.pushAll(integers); //Error message here: List<Integer> is not a subtype of List<Number>
+    }
+}
+```
+
+Что бы это было возможно, можно использовать ограниченный символ подстановки
+
+Producer:
+
+```java
+class Item31 {
+    // We want to push in everything that is E or inherits E
+    public void pushAll(Iterable<? extends E> src) {
+        for (E e : src) {
+            push(e);
+        }
+    }
+}
+
+```
+
+В данном случае параметризованный тип является производителем(producer). Также параметризованный тип может быть
+потребителем(consumer), например получить объекты.
+
+Consumer:
+
+```java
+class Item31 {
+    public void popAll(Collection<? super E> dst) {
+        while (!isEmpty()) dst.add(pop());
+    }
+}
+
+```
+
+Правило **PECS** - producer-extends, consumer-super
+
+Не используйте ограниченные типы с символами подстановки в качестве возвращаемых типов. Пользователь данного элемента не
+должен думать о типах символов подстановки.
+
+`Comparable` и `Comparators` всегда потребители. Используйте `Comparable<? super T>` и `Comparator<? super T>`.
+
+Если параметр типа появляется в объявлении метода только один раз, его следует заменить символом подстановки:
+
+```java
+public static<E> void swap(List<E> list,int i,int j)
+public static void swap(List<?> list,int i,int j) //Более предпочтительный способ
+```
+
+## 5.7 Аккуратно сочетайте обобщенные типы и переменное количество аргументов (Item 32)
+
+Следует помнить, что методы с переменным количеством аргументов и обобщенные типы взаимодействуют не очень хорошо,
+потому что параметр переменной длины представляет собой утечку абстракции, построенную поверх массива, а правила типов
+для массивов отличаются от правил для обобщенных типов.
+
+Если метод вызывается с переменным числом параметров, выведение типов которых недоступен во время выполнения, компилятор
+выдает предупреждение для такого вызова.
+
+Опасно хранить значение в обобщенном массиве-параметре переменной длины.
+
+```java
+public class Dangerous {
+    // Mixing generics and varargs can violate type safety!
+    static void dangerous(List<String>... stringLists) {
+        List<Integer> intList = List.of(42);
+        Object[] objects = stringLists;
+        objects[0] = intList; // Heap pollution
+        String s = stringLists[0].get(0); // ClassCastException
+    }
+}
+
+```
+
+Но методы с переменным количеством параметров обобщенных или параметризованных типов могут быть весьма полезны на
+практике, поэтому разработчики языка решили оставить эту несогласованность `Arrays.asList(T... a)`, `Collections.addAll(
+Collection<? super T c, T... elements>)` и `EnumSet.of(E first, E... rest)`.
+
+Обобщенный метод с переменным количеством аргументов безопасен, если:
+
+1. он ничего не сохраняет в массиве параметра переменной длины;
+2. он не делает массив (или его клон) видимым ненадежному коду.
+
+Аннотация SafeVarargs представляет собой обещание безопасности с точки зрения типов от автора метода. Используйте
+SafeVarargs с каждым методом с параметром переменной длины обобщенного или параметризованного типа, если гарантируете
+безопасность.
+
+## 5.8 Применяйте безопасные с точки зрения типов гетерогенные контейнеры (Item 33)
+
+Использование обобщенных типов ограничивает фиксированным количествам параметров типа в контейнере, например
+коллекции `Set<E>`. Нельзя сделать произвольное количество параметров типа `Set<E...>`.
+
+Можно это обойти, помещая параметр типа в ключ, а не в контейнер.
+
+```java
+
+public class Favorites {
+    private Map<Class<?>, Object> favorites = new HashMap<Class<?>, Object>();
+
+    public <T> void putFavorites(Class<T> type, T instance) {
+        if (type == null)
+            throw new NullPointerException("Type is null");
+        favorites.put(type, type.cast(instance));//runtime safety with a dynamic cast
+    }
+
+    public <T> getFavorite(Class<T> type) {
+        return type.cast(favorites.get(type));
+    }
+}
+
+```
+
+# 6 Перечисления и аннотации
+
+## 6.1 Используйте перечисление вместо констант int (Item 34)
+
+Тип перечисления(enum) - это классы, которые экспортируют по одному экземпляру для каждой константы перечисления,
+используя открытое статическое финальное поле.
+
+До того как типы перечисление появились в языке Java, был распространен шаблон перечисления int(int enum pattern).
+Данный способ не обеспечивает ни безопасности с точки зрения типов, ни выразительности. Данный шаблон больше не
+рекомендуется. Так же как и шаблон перечисления String(String pattern enum), который к тому же не производительный.
+
+Чтобы связать данные с константами причисления, следует объявить поля экземпляров и написать конструктор, который
+получает данные и сохраняет их в поле. Перечисления неизменяемые, все поля должны быть `final`(Item). Также желательно
+их сделать `private`.
+
+```java
+public enum Planet {
+    MERCURY(3.302e+23, 2.439e6),
+    VENUS(4.869e+24, 6.052e6);
+    // ...
+
+    private final double mass; // In kilograms
+    private final double radius; // In meters
+    private final double surfaceGravity; // In m / s^2
+
+    // Universal gravitational constant in m^3 / kg s^2
+    private static final double G = 6.67300E-11;
+
+    // Constructor
+    Planet(double mass, double radius) {
+        this.mass = mass;
+        this.radius = radius;
+        surfaceGravity = G * mass / (radius * radius);
+    }
+
+    public double mass() {
+        return mass;
+    }
+
+    public double radius() {
+        return radius;
+    }
+
+    public double surfaceGravity() {
+        return surfaceGravity;
+    }
+
+    public double surfaceWeight(double mass) {
+        return mass * surfaceGravity; // F = ma
+    }
+}
+
+```
+
+Если применение enum связано с определенным классом верхнего уроня, оно должно быть классом-членом класса верхнего
+уровня(Item).
+
+Можно связать поведение с константами. Для этого нужно объявить абстрактный метод в типе перечисления и перекрыть его
+конкретным методом для каждой константы в теле класса, зависимого от константы(constant-specific class body). Такие
+методы известны как реализации методов, зависимых от констант(constant-specific method implementations).
+
+```java
+public enum Operation {
+    PLUS("+") {
+        public double apply(double x, double y) {
+            return x + y;
+        }
+    },
+    MINUS("-") {
+        public double apply(double x, double y) {
+            return x - y;
+        }
+    },
+    TIMES("*") {
+        public double apply(double x, double y) {
+            return x * y;
+        }
+    },
+    DIVIDE("/") {
+        public double apply(double x, double y) {
+            return x / y;
+        }
+    };
+
+    private final String symbol;
+
+    Operation(String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Override
+    public String toString() {
+        return symbol;
+    }
+
+    public abstract double apply(double x, double y);
+
+    // Implementing a fromString method on an enum type (Page 164)
+    private static final Map<String, Operation> stringToEnum =
+            Stream.of(values()).collect(
+                    toMap(Object::toString, e -> e));
+
+    // Returns Operation for string, if any
+    public static Optional<Operation> fromString(String symbol) {
+        return Optional.ofNullable(stringToEnum.get(symbol));
+    }
+
+    public static void main(String[] args) {
+        double x = Double.parseDouble(args[0]);
+        double y = Double.parseDouble(args[1]);
+        for (Operation op : Operation.values())
+            System.out.printf("%f %s %f = %f%n",
+                    x, op, y, op.apply(x, y));
+    }
+}
+```
+
+Применения `switch` к enum опасно с точки зрения поддержки и менее гибко. Альтернатива - использования
+перечисления-стратегии.
+
+```java
+enum PayrollDay {
+    MONDAY(WEEKDAY), TUESDAY(WEEKDAY), WEDNESDAY(WEEKDAY),
+    THURSDAY(WEEKDAY), FRIDAY(WEEKDAY),
+    SATURDAY(WEEKEND), SUNDAY(WEEKEND);
+
+    private final PayType payType;
+
+    PayrollDay(PayType payType) {
+        this.payType = payType;
+    }
+
+    int pay(int minutesWorked, int payRate) {
+        return payType.pay(minutesWorked, payRate);
+    }
+
+    // The strategy enum type
+    enum PayType {
+        WEEKDAY {
+            int overtimePay(int minsWorked, int payRate) {
+                return minsWorked <= MINS_PER_SHIFT ? 0 :
+                        (minsWorked - MINS_PER_SHIFT) * payRate / 2;
+            }
+        },
+        WEEKEND {
+            int overtimePay(int minsWorked, int payRate) {
+                return minsWorked * payRate / 2;
+            }
+        };
+
+        abstract int overtimePay(int mins, int payRate);
+
+        private static final int MINS_PER_SHIFT = 8 * 60;
+
+        int pay(int minsWorked, int payRate) {
+            int basePay = minsWorked * payRate;
+            return basePay + overtimePay(minsWorked, payRate);
+        }
+    }
+
+    public static void main(String[] args) {
+        for (PayrollDay day : values())
+            System.out.printf("%-10s%d%n", day, day.pay(8 * 60, 1));
+    }
+}
+```
+
+Конструкция switch с перечислениями хорошо подходит для дополнения типов перечислений поведением, зависимым от констант.
+
+```java
+public class Inverse {
+    public static Operation inverse(Operation op) {
+        switch (op) {
+            case PLUS:
+                return Operation.MINUS;
+            case MINUS:
+                return Operation.PLUS;
+            case TIMES:
+                return Operation.DIVIDE;
+            case DIVIDE:
+                return Operation.TIMES;
+
+            default:
+                throw new AssertionError("Unknown op: " + op);
+        }
+    }
+}
+
+```
+
+Используйте перечисления всегда, когда требуется набор констант, члены которых известны во время компиляции.
+
+## 6.2 Используйте поля экземпляра вместо порядковых значений (Item 35)
 

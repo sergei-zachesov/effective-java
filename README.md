@@ -1696,3 +1696,90 @@ public boolean equals(Object b){}
 
 ## 7.1 Предпочитайте лямбда-выражения анонимным классам (Item 42)
 
+Функциональный интерфейс(до Java 8 "функциональный тип") - это интерфейс, который имеет один метод для реализации. При
+этом нет ограничения на другие методы.
+Функциональный объект - это экземпляр класса, реализующий функциональный интерфейс.
+
+До Java 8, основным способом создания функционального объекта был - анонимный класс(Item). В Java 8 язык формализовал
+концепцию интерфейсов с единственным абстрактным методом как отдельную, заслуживающую особой обработки. И язык позволяет
+создавать их экземпляры с помощью лямбда-выражений. Лямбда-выражения функционально равны анонимным классам.
+
+```java
+public class SortFourWays {
+    public static void main(String[] args) {
+
+        // Anonymous class instance as a function object - obsolete!
+        Collections.sort(
+                words,
+                new Comparator<>() {
+                    @Override
+                    public int compare(String s1, String s2) {
+                        return Integer.compare(s1.length(), s2.length());
+                    }
+                });
+
+        // Lambda expression as function object (replaces anonymous class)
+        Collections.sort(
+                words,
+                Comparator < String > comparator = (s1, s2) -> Integer.compare(s1.length(), s2.length()));
+    }
+}
+
+```
+
+Типы для лямбда-выражения самого объекта и его параметров можно не записывать, компилятор определяет типы из контекста.
+Опустите типы всех параметров лямбда-выражения, если только они не делают вашу программу яснее.
+
+Реализацию компаратора можно и упростить, использовав метод постоения компаратора + ссылку на метод(
+Item): `Collections.sort(words, comparingInt(String::length)))`.
+
+Добавление лямбда-выражения в язык делает практичным использование функциональных объектов.
+
+В примере из Item поведение связанное с константами, можно реализовать с помощью лямбда-выражения, использовав
+стандартный функциональный интерфейс `DoubleBinaryOperator`(Item) и реализовать метод `apply`, который делегирует вызов
+метода функционального объекта `applyAsDouble`:
+
+```java
+public enum Operation {
+    PLUS("+", (x, y) -> x + y),
+    MINUS("-", (x, y) -> x - y),
+    TIMES("*", (x, y) -> x * y),
+    DIVIDE("/", (x, y) -> x / y);
+
+    private final String symbol;
+    private final DoubleBinaryOperator op;
+
+    Operation(String symbol, DoubleBinaryOperator op) {
+        this.symbol = symbol;
+        this.op = op;
+    }
+
+    @Override
+    public String toString() {
+        return symbol;
+    }
+
+    public double apply(double x, double y) {
+        return op.applyAsDouble(x, y);
+    }
+
+    public static void main(String[] args) {
+        double x = Double.parseDouble(args[0]);
+        double y = Double.parseDouble(args[1]);
+        for (Operation op : Operation.values())
+            System.out.printf("%f %s %f = %f%n", x, op, y, op.apply(x, y));
+    }
+}
+
+```
+
+Если вычисление не требует оставлять пояснений в виде комментариев или превышает несколько строк, не используйте для
+него лямбда-выражение.
+
+Для лямбда-выражения идеально одна строка кода, а три это разумный максимум. Если лямбда-выражения длинное или сложное
+для чтения, либо упростите его, либо сделайте рефакторинг и замените его.
+
+Что можно сделать с анонимными классами, и нельзя - с лямбда-выражениями.
+
+- Если нужно создать экземпляр абстактного класса, то это можно сделать с помощью анонимного класса, но не
+  лямбда-выражения.

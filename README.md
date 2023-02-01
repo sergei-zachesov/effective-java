@@ -75,6 +75,13 @@
     - [7.7 Будьте внимательны при параллелизации потоков (Item 48)](#77-будьте-внимательны-при-параллелизации-потоков-item-48)
 - [8 Методы](#8-методы)
     - [8.1 Проверяйте корректность параметров (Item 49)](#81-проверяйте-корректность-параметров-item-49)
+    - [8.2 При необходимости создавайте защитные копии (Item 50)](#82-при-необходимости-создавайте-защитные-копии-item-50)
+    - [8.3 Тщательно проектируйте сигнатуры методов (Item 51)](#83-тщательно-проектируйте-сигнатуры-методов-item-51)
+    - [8.4 Перезагружайте методы разумно (Item 52)](#84-перезагружайте-методы-разумно-item-52)
+    - [8.5 Используйте методы с переменным количеством аргументов с осторожностью (Item 53)](#85-используйте-методы-с-переменным-количеством-аргументов-с-осторожностью-item-53)
+    - [8.6 Возвращайте пустые массивы и коллекции, а не null (Item 54)](#86-возвращайте-пустые-массивы-и-коллекции-а-не-null-item-54)
+    - [8.7 Возвращайте Optional с осторожностью (Item 55)](#87-возвращайте-optional-с-осторожностью-item-55)
+    - [8.8 Пишите документирующие комментарии для всех открытых элементов API (Item 56)](#88-пишите-документирующие-комментарии-для-всех-открытых-элементов-api-item-56)
 
 # 2. Создание и уничтожение объектов
 
@@ -1413,49 +1420,56 @@ public enum Operation {
 
 ```java
 enum PayrollDay {
-    MONDAY(WEEKDAY), TUESDAY(WEEKDAY), WEDNESDAY(WEEKDAY),
-    THURSDAY(WEEKDAY), FRIDAY(WEEKDAY),
-    SATURDAY(WEEKEND), SUNDAY(WEEKEND);
+  MONDAY,
+  TUESDAY,
+  WEDNESDAY,
+  THURSDAY,
+  FRIDAY,
+  SATURDAY(WEEKEND),
+  SUNDAY(WEEKEND);
 
-    private final PayType payType;
+  private final PayType payType;
 
-    PayrollDay(PayType payType) {
-        this.payType = payType;
+  PayrollDay() {
+    this(WEEKDAY); // default
+  }
+
+  PayrollDay(PayType payType) {
+    this.payType = payType;
+  }
+
+  int pay(int minutesWorked, int payRate) {
+    return payType.pay(minutesWorked, payRate);
+  }
+
+  // The strategy enum type
+  enum PayType {
+    WEEKDAY {
+      int overtimePay(int minsWorked, int payRate) {
+        return minsWorked <= MINS_PER_SHIFT ? 0 : (minsWorked - MINS_PER_SHIFT) * payRate / 2;
+      }
+    },
+    WEEKEND {
+      int overtimePay(int minsWorked, int payRate) {
+        return minsWorked * payRate / 2;
+      }
+    };
+
+    abstract int overtimePay(int mins, int payRate);
+
+    private static final int MINS_PER_SHIFT = 8 * 60;
+
+    int pay(int minsWorked, int payRate) {
+      int basePay = minsWorked * payRate;
+      return basePay + overtimePay(minsWorked, payRate);
     }
+  }
 
-    int pay(int minutesWorked, int payRate) {
-        return payType.pay(minutesWorked, payRate);
-    }
-
-    // The strategy enum type
-    enum PayType {
-        WEEKDAY {
-            int overtimePay(int minsWorked, int payRate) {
-                return minsWorked <= MINS_PER_SHIFT ? 0 :
-                        (minsWorked - MINS_PER_SHIFT) * payRate / 2;
-            }
-        },
-        WEEKEND {
-            int overtimePay(int minsWorked, int payRate) {
-                return minsWorked * payRate / 2;
-            }
-        };
-
-        abstract int overtimePay(int mins, int payRate);
-
-        private static final int MINS_PER_SHIFT = 8 * 60;
-
-        int pay(int minsWorked, int payRate) {
-            int basePay = minsWorked * payRate;
-            return basePay + overtimePay(minsWorked, payRate);
-        }
-    }
-
-    public static void main(String[] args) {
-        for (PayrollDay day : values())
-            System.out.printf("%-10s%d%n", day, day.pay(8 * 60, 1));
-    }
+  public static void main(String[] args) {
+    for (PayrollDay day : values()) System.out.printf("%-10s%d%n", day, day.pay(8 * 60, 1));
+  }
 }
+
 ```
 
 Конструкция switch с перечислениями хорошо подходит для дополнения типов перечислений поведением, зависимым от констант.
@@ -2147,4 +2161,326 @@ public class Adapters {
 # 8 Методы
 
 ## 8.1 Проверяйте корректность параметров (Item 49)
+
+При написании метода или конструктора, нужно продумать какие ограничения имеются для его параметров. Необходимо отразить
+эти ограничения в документации, а также реализовать в начале работы метода явную проверку их выполнения. А отказ от
+этого может привести к нарушению принципа атомарности сбоев.
+
+В документации, исключения которые могут быть сгенерированы при неправильном параметре помечаются
+дескриптором `@throws`(Item). Основные используемы для этого
+исключения: `IllegalArgumentException`, `IndexOutOfBoundsException` и `NullPointerException`(Item).
+
+Метод `Objects.requireNonNull`, гибкий и удобный, так что больше нет никакой причины для проверки значения `null`
+вручную.
+
+Для методов с модификатором доступа `private`, можно использовать проверку параметров с помощью `assert`:
+
+```java
+class SortUtil {
+    private static void sort(long a[], int offset, int length) {
+
+        assert a != null;
+        assert offset >= 0 && offset <= a.length;
+        assert length >= 0 && length <= a.length - offset;
+    }
+}
+
+```
+
+Отличия `assert` от обычных проверок:
+
+1. Если условия не выполнится, то генерируется исключение `AssertionError`.
+2. Они не выполняют никаких действий и не имеют стоимости при их отключения с помощью флага командной строки `java -ea`.
+
+Важно проверять правильность параметров, которые методом не используются, а откладываются для последующей обработки.
+
+Можно не делать проверку, если она является дорогостоящей или непрактичной операцией, и при этом параметры неявно
+проверяются непосредственно в процессе выполнения вычисления.
+
+Если в ходе вычисления методом происходит неявная проверка корректности параметра, и если проверку не проходит, то
+генерируется исключение, которое не соответствует исключению из документации. Здесь можно использовать идиому трансляции
+исключения(Item).
+
+## 8.2 При необходимости создавайте защитные копии (Item 50)
+
+Нужно писать программы оборонительно - исходя из предположения, что клиенты вашего класса будут предпринимать все
+возможное для того, чтобы разарушить его инварианты.
+
+Некорректный "неизменяемый" класс:
+
+```java
+public final class Period {
+    private final Date start;
+    private final Date end;
+
+    /**
+     * @param start the beginning of the period
+     * @param end the end of the period; must not precede start
+     * @throws IllegalArgumentException if start is after end
+     * @throws NullPointerException if start or end is null
+     */
+    public Period(Date start, Date end) {
+        if (start.compareTo(end) > 0) throw new IllegalArgumentException(start + " after " + end);
+        this.start = start;
+        this.end = end;
+    }
+
+    public Date start() {
+        return start;
+    }
+
+    public Date end() {
+        return end;
+    }
+}
+
+```
+
+Атака - изменение внутренних данных:
+
+```java
+        Date start=new Date();
+        Date end=new Date();
+        Period p=new Period(start,end);
+        end.setYear(78); // Modifies internals of p!
+
+```
+
+В частном случае `Date` является устаревшим классом и не должен испльзоваться в новом коде.
+
+В общем случае для защиты необходиом сделать защитную копию каждого изменяемого параметра конструктора:
+
+```java
+public Period(Date start,Date end){
+        this.start=new Date(start.getTime());
+        this.end=new Date(end.getTime());
+
+        if(this.start.compareTo(this.end)>0)
+        throw new IllegalArgumentException(
+        this.start+" after "+this.end);
+        }
+
+```
+
+Копии делаются до проверки параметров(Item), так что проверка корректности выполняется над копией, а не над оригиналом.
+Это позволяет защитить от атаки между проверкой и использованием.
+
+Не используйте clone для создания копии параметров, тип которого позволяет ненадежным сторонам создавать подклассы.
+
+Вторая атака - изменение внутренних данных, через методы доступа:
+
+```java
+        Date start=new Date();
+        Date end=new Date();
+        p=new Period(start,end);
+        p.end().setYear(78);  // Modifies internals of p!
+
+```
+
+Для защиты, нужно возвращать копии изменяемых внутренних объектов:
+
+```java
+public Date start(){return new Date(start.getTime());}
+
+public Date end(){return new Date(end.getTime());}
+
+```
+
+Лучше использовать неизменяемые объекты(Item) в качестве компонентов.
+
+Возможно будет снижение производительности из-за создания копии. По-этому необходимо анализировать: если вы доверяете
+вызываемому объекту, то можно копии не делать.
+
+## 8.3 Тщательно проектируйте сигнатуры методов (Item 51)
+
+Советы по проектированию API:
+
+- Тщательно выбирайте имена методов(Item)
+- Не заходите слишком далеко в погоне за удобством методов. Не создавайте их слишком много
+- Избегайте длинных списков параметров. 4 параметра - это максимум. Особенно вредны длинные последовательности
+  параметров одного и того же типа. Что сократить есть следующие приемы: разбить метод на подметоды; создать
+  вспомогательный класс, хранящий группы параметров - обычно используют вложенный статический класс(Item); использовать
+  шаблон строитель(Item).
+- Предпочитайте в качестве типов параметров интерфейсы, а не классы(Item)
+- Предпочитайте двухэлементные типы перечислений для
+  параметров `boolean`: `public enum TemperatureScale {CELSIUS, FARENHEIT}`
+
+## 8.4 Перезагружайте методы разумно (Item 52)
+
+Выбор среди перегруженных методов является статическим, в то время как выбор переопределенного метода - динамический.
+
+```java
+public class CollectionClassifier {
+    public static String classify(Set<?> s) {
+        return "Set";
+    }
+
+    public static String classify(List<?> lst) {
+        return "List";
+    }
+
+    public static String classify(Collection<?> c) {
+        return "Unknown Collection";
+    }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = {
+                new HashSet<String>(), new ArrayList<BigInteger>(), new HashMap<String, String>().values()
+        };
+
+        for (Collection<?> c : collections)
+            System.out.println(
+                    classify(c)); // -> Unknown Collection /n Unknown Collection /n Unknown Collection
+    }
+}
+
+```
+
+В данном случае выбрался наиболее общий тип коллекции, который указан в цикле.
+
+Выбор того, какая из перезагрузок будет вызвана, выполняется во время компиляции.
+
+При преопределении метода, во время выполнения программы выбирается наиболее конкретный метод:
+
+```java
+    class Wine {
+    String name() {
+        return "wine";
+    }
+}
+
+class SparklingWine extends Wine {
+    @Override
+    String name() {
+        return "sparkling wine";
+    }
+}
+
+class Champagne extends SparklingWine {
+    @Override
+    String name() {
+        return "champagne";
+    }
+}
+
+public class Overriding {
+    public static void main(String[] args) {
+        Wine[] wines = {
+                new Wine(), new SparklingWine(), new Champagne()
+        };
+        for (Wine wine : wines)
+            System.out.println(wine.name()); // prints: wine, sparkling wine, and champagne
+    }
+}    
+```
+
+Что бы в классе CollectionClassifier тип распознавался во время выполнения. Нужно использовать один метод и
+оператор `instanceof`:
+
+```java
+public class FixedCollectionClassifier {
+    public static String classify(Collection<?> c) {
+        return c instanceof Set ? "Set" : c instanceof List ? "List" : "Unknown Collection";
+    }
+}
+
+```
+
+Безопасная и консервативная стратегия состоит в том, чтобы никогда не экспортировать две перегрузки с одинаковым числом
+параметров. При переменном количестве аргументов - не перезагружать вовсе.
+
+Можно всегда дать методам разные имена вместо того, чтобы их перезагружать.
+
+Если перезагруженные методы имеют одинаковое количество параметров, но имеют "совершенно иные" типы, например `int`
+и `Collection` - такое допускается.
+
+Не перегружайте методы, принимающие различные функциональные интерфейсы с одной и той же позиции аргумента.
+
+При эволюции классов бывает необходимость нарушить рекомендации выше. Например, в Java 5
+метод `String::contentEquals(StringBuffer)` переопределяется с типом параметра `CharSequence`, который является общим
+для
+других `String`-классов. Что бы для клиента разница в использовании не была замена, необходимо сохранить поведение и у
+старого метода вызывать новый понижением типа:
+
+```java
+
+public boolean contentEquals(StringBuffer sb){
+        return contentEquals((CharSequence)sb);
+        }
+
+```
+
+## 8.5 Используйте методы с переменным количеством аргументов с осторожностью (Item 53)
+
+Методы с переменным количеством аргументов, также называется методы с переменной арности, принимают нуль или более
+аргументов:
+
+```java
+public class Varargs {
+    // The WRONG way to use varargs to pass one or more arguments!
+    static int min(int... args) {
+        if (args.length == 0) throw new IllegalArgumentException("Too few arguments");
+        int min = args[0];
+        for (int i = 1; i < args.length; i++) if (args[i] < min) min = args[i];
+        return min;
+    }
+}
+
+```
+
+Если будет вызов без аргументов, то ошибка будет во время компиляции, а не выполнения и необходимо делать доп. проверку.
+
+Альтернатива этому - создать метод с двумя параметрами:
+
+```java
+public class Varargs {
+    static int min(int firstArg, int... remainingArgs) {
+        int min = firstArg;
+        for (int arg : remainingArgs) if (arg < min) min = arg;
+        return min;
+    }
+}
+
+```
+
+Использование параметров переменной длины могут влиять на производительность. По-этому можно определить с каким
+наиболее количеством параметров вызывается метод и сделать несколько перезагрузок метода с количеством аргументов от
+нуля - до популярного значения. Например, как это реализовано в `List.of()`.
+
+## 8.6 Возвращайте пустые массивы и коллекции, а не null (Item 54)
+
+Если метод, возвращающий коллекцию, может вернуть `null` это требует от клиента добавления проверки на `null`.
+
+Аргументы против "`null` позволяет избежать расходов на размещение в памяти пустого контейнера":
+
+- На этом уровне нет смысле беспокоится о производительности
+- Можно возвращать пустой контейнер без выделения памяти. Например, `Collections.emptyList`
+
+## 8.7 Возвращайте Optional с осторожностью (Item 55)
+
+Если метод не сможет вернуть значение, есть следующие подходы для реализации данной ситуации:
+
+- Вернуть `null`
+- Сгенерировать исключение
+- С Java 8 вернуть `Optional<T>`
+
+Объекты `Optional` по духу аналогичны проверяемым исключениям(Item) - заставляют клиента признать, что возвращаемого
+значения может и не быть, и требует дополнительного стереотипного кода клиента. Необрабатываемые исключения и `null`
+позволяют игнорировать этот случай, что чревато плохими последствиями.
+
+Никогда не возвращайте значение `null` из метода, возвращающего `Optional`: тем самым теряется сам смысл его
+использования.
+
+Типы контейнеров, включая коллекции, `Map`, `Stream`, массивы и `Optional`.
+
+Следует объявлять метод как возвращающий `Optional<T>` если он не в состоянии возвратить результат, а клиенты должны
+выполнить специальную обработку, когда результат не возвращается. Но возврат `Optional` может влиять на
+производительность.
+
+Никогда не следует возвращать `Optional` для упакованных примитивных типов, для этого следует
+использовать: `OptionalInt`, `OptionalLong` и `OptionalDouble`.
+
+Не следует использовать `Optional` как ключ, значение или элемент, коллекции или массива.
+
+## 8.8 Пишите документирующие комментарии для всех открытых элементов API (Item 56)
 

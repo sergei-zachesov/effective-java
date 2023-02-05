@@ -82,6 +82,8 @@
     - [8.6 Возвращайте пустые массивы и коллекции, а не null (Item 54)](#86-возвращайте-пустые-массивы-и-коллекции-а-не-null-item-54)
     - [8.7 Возвращайте Optional с осторожностью (Item 55)](#87-возвращайте-optional-с-осторожностью-item-55)
     - [8.8 Пишите документирующие комментарии для всех открытых элементов API (Item 56)](#88-пишите-документирующие-комментарии-для-всех-открытых-элементов-api-item-56)
+- [9. Общие вопросы программирования](#9-общие-вопросы-программирования)
+    - [9.1 Минимизируйте область видимости локальных переменных (Item 57)](#91-минимизируйте-область-видимости-локальных-переменных-item-57)
 
 # 2. Создание и уничтожение объектов
 
@@ -1420,54 +1422,54 @@ public enum Operation {
 
 ```java
 enum PayrollDay {
-  MONDAY,
-  TUESDAY,
-  WEDNESDAY,
-  THURSDAY,
-  FRIDAY,
-  SATURDAY(WEEKEND),
-  SUNDAY(WEEKEND);
+    MONDAY,
+    TUESDAY,
+    WEDNESDAY,
+    THURSDAY,
+    FRIDAY,
+    SATURDAY(WEEKEND),
+    SUNDAY(WEEKEND);
 
-  private final PayType payType;
+    private final PayType payType;
 
-  PayrollDay() {
-    this(WEEKDAY); // default
-  }
-
-  PayrollDay(PayType payType) {
-    this.payType = payType;
-  }
-
-  int pay(int minutesWorked, int payRate) {
-    return payType.pay(minutesWorked, payRate);
-  }
-
-  // The strategy enum type
-  enum PayType {
-    WEEKDAY {
-      int overtimePay(int minsWorked, int payRate) {
-        return minsWorked <= MINS_PER_SHIFT ? 0 : (minsWorked - MINS_PER_SHIFT) * payRate / 2;
-      }
-    },
-    WEEKEND {
-      int overtimePay(int minsWorked, int payRate) {
-        return minsWorked * payRate / 2;
-      }
-    };
-
-    abstract int overtimePay(int mins, int payRate);
-
-    private static final int MINS_PER_SHIFT = 8 * 60;
-
-    int pay(int minsWorked, int payRate) {
-      int basePay = minsWorked * payRate;
-      return basePay + overtimePay(minsWorked, payRate);
+    PayrollDay() {
+        this(WEEKDAY); // default
     }
-  }
 
-  public static void main(String[] args) {
-    for (PayrollDay day : values()) System.out.printf("%-10s%d%n", day, day.pay(8 * 60, 1));
-  }
+    PayrollDay(PayType payType) {
+        this.payType = payType;
+    }
+
+    int pay(int minutesWorked, int payRate) {
+        return payType.pay(minutesWorked, payRate);
+    }
+
+    // The strategy enum type
+    enum PayType {
+        WEEKDAY {
+            int overtimePay(int minsWorked, int payRate) {
+                return minsWorked <= MINS_PER_SHIFT ? 0 : (minsWorked - MINS_PER_SHIFT) * payRate / 2;
+            }
+        },
+        WEEKEND {
+            int overtimePay(int minsWorked, int payRate) {
+                return minsWorked * payRate / 2;
+            }
+        };
+
+        abstract int overtimePay(int mins, int payRate);
+
+        private static final int MINS_PER_SHIFT = 8 * 60;
+
+        int pay(int minsWorked, int payRate) {
+            int basePay = minsWorked * payRate;
+            return basePay + overtimePay(minsWorked, payRate);
+        }
+    }
+
+    public static void main(String[] args) {
+        for (PayrollDay day : values()) System.out.printf("%-10s%d%n", day, day.pay(8 * 60, 1));
+    }
 }
 
 ```
@@ -2483,4 +2485,142 @@ public class Varargs {
 Не следует использовать `Optional` как ключ, значение или элемент, коллекции или массива.
 
 ## 8.8 Пишите документирующие комментарии для всех открытых элементов API (Item 56)
+
+Чтобы должным образом документировать свой API, следует предварять каждый экспортируемый класс, интерфейс, конструктор,
+метод и объявление поля документирующим комментарием.
+
+Если класс является сериализуемым, следует также документировать его сериалзиованную форму(Item).
+
+Открытые классы не должны использовать конструкторы по-умолчанию, потому что нет никакого способа предоставить для них
+документирующих комментарии.
+
+Документирующий комментарий метода должен лаконично описывать контракт между этим методом и его клиентом:
+
+- Контракт должен точно оговаривать, что делает данный метод, а не как он это делает
+- Необходимо перечислить все предусловия и постусловия
+- Обычно предусловия неявно описывается дескриптором `@throws` для непроверяемых исключений
+- Предусловия могут указываться вместе с параметрами, которых они касаются, в соответствующих параметрах `@param`
+- Должны быть документированы любые побочные эффекты. Побочный эффект - это наблюдаемое изменение состояние системы,
+  которое является неочевидным условием для достижения постусловия.
+- Каждый комментарий должен включать в себя дескрипторы: `@param`, `@return`, `@throws`.
+
+```java
+public class DocExamples<E> {
+
+    /**
+     * Returns the element at the specified position in this list.
+     *
+     * <p>This method is <i>not</i> guaranteed to run in constant time. In some implementations it may
+     * run in time proportional to the element position.
+     *
+     * @param index index of element to return; must be non-negative and less than the size of this
+     *     list
+     * @return the element at the specified position in this list
+     * @throws IndexOutOfBoundsException if the index is out of range ({@code index < 0 || index >=
+     *     this.size()})
+     */
+    E get(int index) {
+        return null;
+    }
+
+    // Use of @implSpec to describe self-use patterns & other visible implementation details.
+
+    /**
+     * Returns true if this collection is empty.
+     *
+     * @implSpec This implementation returns {@code this.size() == 0}.
+     * @return true if this collection is empty
+     */
+    public boolean isEmpty() {
+        return false;
+    }
+
+    // Use of the @literal tag to include HTML and javadoc metacharacters in javadoc comments.
+
+    /** A geometric series converges if {@literal |r| < 1}. */
+    public void fragment() {
+    }
+
+    // Controlling summary description when there is a period in the first "sentence" of doc comment.
+
+    /** A suspect, such as Colonel Mustard or {@literal Mrs. Peacock}. */
+    public enum FixedSuspect {
+        MISS_SCARLETT,
+        PROFESSOR_PLUM,
+        MRS_PEACOCK,
+        MR_GREEN,
+        COLONEL_MUSTARD,
+        MRS_WHITE
+    }
+
+    // Generating a javadoc index entry in Java 9 and later releases.
+
+    /** This method complies with the {@index IEEE 754} standard. */
+    public void fragment2() {
+    }
+
+    // Documenting enum constants (Page 258)
+
+    /** An instrument section of a symphony orchestra. */
+    public enum OrchestraSection {
+        /** Woodwinds, such as flute, clarinet, and oboe. */
+        WOODWIND,
+
+        /** Brass instruments, such as french horn and trumpet. */
+        BRASS,
+
+        /** Percussion instruments, such as timpani and cymbals. */
+        PERCUSSION,
+
+        /** Stringed instruments, such as violin and cello. */
+        STRING;
+    }
+
+    // Documenting an annotation type
+
+    /**
+     * Indicates that the annotated method is a test method that must throw the designated exception
+     * to pass.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface ExceptionTest {
+        /**
+         * The exception that the annotated test method must throw in order to pass. (The test is
+         * permitted to throw any subtype of the type described by this class object.)
+         */
+        Class<? extends Throwable> value();
+    }
+}
+
+```
+
+В документирующем комментарии слово `this` всегда указывает на объект, которому принадлежит вызываемый метод.
+
+При создании класса для наследования необходимо документировать его схемы использования собственных объектов(Item), это
+обычно документируется с помощью `@implSpec`.
+
+Документирующие комментарии должны быть читаемыми как в исходном тексте, так и в сгенерированной документации.
+
+Первым предложением комментария является краткое описание того элемента, к которому этот комментарий относится.
+
+Никакие два члена или конструктора в одном классе или интерфейсе не должны иметь одинаковое краткое описание.
+
+При документировании обобщенного типа или метода убедитесь, что вы документируете все параметры.
+
+При документировании типа перечисления убедитесь, что вы документируете константы.
+
+При документировании типа аннотации убедитесь, что вы документируете все члены.
+
+Документирующие комментарии уровня пакета следует помещать в файл c именем `package-info.java`.
+
+Является ли класс безопасным с точки зрения многопоточности или нет - в любом случае уровень его безопасности с точки
+зрения потоков должен быть документирован(Item). Если класс сериализуется, нужно документировать сериализованный тип(
+Item).
+
+# 9. Общие вопросы программирования
+
+## 9.1 Минимизируйте область видимости локальных переменных (Item 57)
+
+
 

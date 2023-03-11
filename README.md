@@ -643,16 +643,10 @@ class Item13 {
 Лучшие альтернативы для клонирования объектов:
 
 1. Конструктор копирования
-
-```java
-public Yum(Yum yum);
-```
+   `public Yum(Yum yum)`
 
 2. Фабрика копий
-
-```java
-public static Yum newInstance(Yum yum);
-```
+   `public static Yum newInstance(Yum yum)`
 
 Плюсы:
 

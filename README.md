@@ -223,12 +223,7 @@ public class NutritionFacts {
 ```
 
 _Код клиента:_
-
-```java
-
-NutritionFacts cocaCola=new NutritionFacts.Builder(240,8).calories(100).sodium(35).carbohydrate(27).build();
-
-```
+`NutritionFacts cocaCola=new NutritionFacts.Builder(240,8).calories(100).sodium(35).carbohydrate(27).build();`
 
 ## 2.3 Получайте синглтон с помощью закрытого конструктора или типа перечисления (Item 3)
 
@@ -238,9 +233,11 @@ NutritionFacts cocaCola=new NutritionFacts.Builder(240,8).calories(100).sodium(3
 public class Elvis {
     public static final Elvis INSTANCE = new Elvis();
 
-    private Elvis() { ...}
+    private Elvis() {
+    }
 
-    public void singASong() { ...}
+    public void singASong() {
+    }
 }
 
 ```
@@ -256,13 +253,13 @@ _Синглтон со статической фабрикой:_
     public class Elvis {
     private static final Elvis INSTANCE = new Elvis();
 
-    private Elvis() {...}
+    private Elvis() {}
 
     public static Elvis getInstance() {
         return INSTANCE;
     }
 
-    public void singASong() {...}
+    public void singASong() {}
 }
 
 ```
@@ -1915,7 +1912,7 @@ public class Freq {
 осторожностью ([Item 21](#47-проектируйте-интерфейсы-для-потомков-item-21)). Всегда аннотируйте ваши функциональные
 интерфейсы с помощью аннотации `@FunctionalInterface`.
 
-Не делайте перезагрузку метода([Item 52](#84-перезагружайте-методы-разумно-item-52)), которые принимают разные
+Не делайте перезагрузку метода ([Item 52](#84-перезагружайте-методы-разумно-item-52)), которые принимают разные
 функциональные интерфейсы в одно и той же позиции аргумента, если это может привести к возможной неоднозначности в
 команде клиента. Например, в `ExecutorService` метод `submit` может принимать `Callable<T>` или `Runnable`.
 

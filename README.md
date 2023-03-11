@@ -297,9 +297,9 @@ class Item3 {
 
 public enum Elvis() {
     INSTANCE;
-		...
 
-    public void singASong() {...}
+    public void singASong() {
+    }
 }
 
 ```

@@ -592,17 +592,15 @@ class Item11 {
 Неизменяемые классы никогда не должны предоставлять метод `clone`, потому что это будет просто поощрением излишнего
 копирования.
 
-Для неокончательного класса, без полей с изменяемыми объектами, необходимо перекрыть метод `clone`, в качестве
-возвращаемого типа будет сам класс в котором он реализован. Метод `clone` будет вызывать `super.clone`.
-
 ```java
-class Item13 {
+class PhoneNumber implements Cloneable {
+    // Clone method for class with no references to mutable state
     @Override
     public PhoneNumber clone() {
         try {
             return (PhoneNumber) super.clone();
         } catch (CloneNotSupportedException e) {
-            throw new AssertionError(); // Can't happen
+            throw new AssertionError();  // Can't happen
         }
     }
 }
@@ -628,7 +626,7 @@ class Item13 {
 
 ```
 
-Архитектура `Cloneable` несовместима с нормальны использованием `final`-полей, ссылающихся на изменяемые объекты.
+Архитектура `Cloneable` несовместима с нормальны использованием `final` - полей, ссылающихся на изменяемые объекты.
 Возможно потребуется убрать `final`, что клонировать объект.
 
 Метод `clone` никогда не должен вызывать перекрываемый метод для создаваемого клона.

@@ -2952,7 +2952,7 @@ public class ReflectiveInstantiation {
 
 **Типографические**
 
-| Пример                    | Тип                                           |
+| Тип                       | Пример                                        |
 |---------------------------|-----------------------------------------------|
 | Пакет                     | com.google.inject, org.joda.time.format       |
 | Класс/Интерфейс           | Timer, FutureTask, LinkedHashMap, HttpServlet |

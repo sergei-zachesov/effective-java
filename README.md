@@ -1103,19 +1103,23 @@ public class PhysicalConstants {
 Они оставлены для обратной совместимости.
 
 ```java
-    private final Collection stamps=...;
+    private final Collection stamps =...;
 
-        stamps.add(new Coin(...)); //Erroneous insertion. Does not throw any error
+        stamps.
 
-        Stamp s=(Stamp)stamps.get(i); // Throws ClassCastException when getting the Coin
+add(new Coin(...)); //Erroneous insertion. Does not throw any error
+
+Stamp s = (Stamp) stamps.get(i); // Throws ClassCastException when getting the Coin
 ```
 
 ```java
-    private final Collection<Stamp> stamps=...;
+    private final Collection<Stamp> stamps =...;
 
-        stamps.add(new Coin()); // Compile time error. Coin can not be add to Collection<Stamp>
+        stamps.
 
-        Stamp s=stamps.get(i); // No need casting
+add(new Coin()); // Compile time error. Coin can not be add to Collection<Stamp>
+
+Stamp s = stamps.get(i); // No need casting
 ```
 
 Правила образования подтипов для обобщенных типов: `List<String>` является подтипом сырого `List`, но не является
@@ -1257,8 +1261,9 @@ class Item31 {
 Если параметр типа появляется в объявлении метода только один раз, его следует заменить символом подстановки:
 
 ```java
-public static<E> void swap(List<E> list,int i,int j)
-public static void swap(List<?> list,int i,int j) //Более предпочтительный способ
+public static <E> void swap(List<E> list, int i, int j)
+
+public static void swap(List<?> list, int i, int j) //Более предпочтительный способ
 ```
 
 ## 5.7 Аккуратно сочетайте обобщенные типы и переменное количество аргументов (Item 32)
@@ -1676,15 +1681,18 @@ public @interface ExceptionTest {
     Class<? extends Exception>[] value();
 }
 
-    //Usage of the annotation
-    @ExceptionTest({IndexOutOfBoundsException.class, NullPointerException.class})
-    public void myMethod() {
-    }
+//Usage of the annotation
+@ExceptionTest({IndexOutOfBoundsException.class, NullPointerException.class})
+public void myMethod() {
+}
 
 //By reflexion you can use the annotation this way
-m.isAnnotationPresent(ExceptionTest.class);
+m.
+
+isAnnotationPresent(ExceptionTest .class);
+
 //Or get the values this way :
-        Class<?extends Exception>[]excTypes=m.getAnnotation(ExceptionTest.class).value();
+Class<? extends Exception>[] excTypes = m.getAnnotation(ExceptionTest.class).value();
 
 ```
 
@@ -1697,9 +1705,11 @@ m.isAnnotationPresent(ExceptionTest.class);
 - Можно использовать повторяемый тип аннотации:
 
 ```java
+
 @ExceptionTest(IndexOutOfBoundsException.class)
 @ExceptionTest(NullPointerException.class)
-public static void doublyBad(){}
+public static void doublyBad() {
+}
 ```
 
 ## 6.7 Последовательно используйте аннотацию Override (Item 40)
@@ -1710,13 +1720,15 @@ public static void doublyBad(){}
 Если объявить её у метода, который неправильно переопределяет метод суперкласса, то компилятор вызовет ошибку.
 
 ```java
+
 @Override //Compilation error
-public boolean equals(Bigram b){
-        return b.first==first&&b.second==second;
-        }
+public boolean equals(Bigram b) {
+    return b.first == first && b.second == second;
+}
 
 @Override //  The correct sign to override the super method
-public boolean equals(Object b){}
+public boolean equals(Object b) {
+}
 
 ```
 
@@ -2272,10 +2284,12 @@ public final class Period {
 Атака - изменение внутренних данных:
 
 ```java
-        Date start=new Date();
-        Date end=new Date();
-        Period p=new Period(start,end);
-        end.setYear(78); // Modifies internals of p!
+        Date start = new Date();
+Date end = new Date();
+Period p = new Period(start, end);
+        end.
+
+setYear(78); // Modifies internals of p!
 
 ```
 
@@ -2284,14 +2298,14 @@ public final class Period {
 В общем случае для защиты необходиом сделать защитную копию каждого изменяемого параметра конструктора:
 
 ```java
-public Period(Date start,Date end){
-        this.start=new Date(start.getTime());
-        this.end=new Date(end.getTime());
+public Period(Date start, Date end) {
+    this.start = new Date(start.getTime());
+    this.end = new Date(end.getTime());
 
-        if(this.start.compareTo(this.end)>0)
+    if (this.start.compareTo(this.end) > 0)
         throw new IllegalArgumentException(
-        this.start+" after "+this.end);
-        }
+                this.start + " after " + this.end);
+}
 
 ```
 
@@ -2304,19 +2318,29 @@ public Period(Date start,Date end){
 Вторая атака - изменение внутренних данных, через методы доступа:
 
 ```java
-        Date start=new Date();
-        Date end=new Date();
-        p=new Period(start,end);
-        p.end().setYear(78);  // Modifies internals of p!
+        Date start = new Date();
+Date end = new Date();
+p=new
+
+Period(start, end);
+        p.
+
+end().
+
+setYear(78);  // Modifies internals of p!
 
 ```
 
 Для защиты, нужно возвращать копии изменяемых внутренних объектов:
 
 ```java
-public Date start(){return new Date(start.getTime());}
+public Date start() {
+    return new Date(start.getTime());
+}
 
-public Date end(){return new Date(end.getTime());}
+public Date end() {
+    return new Date(end.getTime());
+}
 
 ```
 
@@ -2440,9 +2464,9 @@ public class FixedCollectionClassifier {
 
 ```java
 
-public boolean contentEquals(StringBuffer sb){
-        return contentEquals((CharSequence)sb);
-        }
+public boolean contentEquals(StringBuffer sb) {
+    return contentEquals((CharSequence) sb);
+}
 
 ```
 
@@ -3526,7 +3550,7 @@ class LockObjectIdiom {
 
 ```java
 // Normal initialization of an instance field
-private final FieldType field=computeFieldValue();
+private final FieldType field = computeFieldValue();
 ```
 
 При отложенной инициализации, чтобы избежать зацикленность инициализации, необходимо использовать синхронизированный
@@ -3583,6 +3607,10 @@ public class Initialization {
 }
 
 ```
+
+Локальная переменная `result` нужна для гарантии однократного чтения `field` в распространенном случае, когда она уже
+инициализирована. Хотя в ней нет острой необходимости, она может улучшить производительность(примерно на 25%) и повысить
+элегантность с точки зрения стандартов низкоуровневого параллельного программирования.
 
 Если поле экземпляра допускает повторную инициализацию, можно использовать идиому однократной проверки:
 

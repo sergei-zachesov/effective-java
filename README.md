@@ -935,20 +935,20 @@ public class ForwardingSet<E> implements Set<E> {
 ## 4.5 Проектируйте и документируйте наследование, либо запрещайте его (Item 19)
 
 Класс должен документировать, какие из методов он использует сам (self-use), которые могут быть переопределены. Для
-каждого открытого или защищенного метода документация должна указывать, какие методы, которые могут быть переопределены,
-он вызывает, в какой последовательности, а также каким образом результаты их вызова влияют на дальнейшую работу.
+каждого открытого или защищенного метода документация должна указывать: какие методы он вызывает, которые могу быть
+переопределены; в какой последовательности; каким образом результаты их вызова влияют на дальнейшую работу.
 
-Для создания более эффективных подклассов, класс может предоставлять точки входа при внутренней обработке в виде разумно
-выбранных защищенных методов.
+Для создания более эффективных подклассов, суперкласс может предоставлять точки входа при внутренней обработке в виде
+разумно выбранных защищенных методов.
 
 Единственный способ протестировать класс, предназначенный для наследования - написать подклассы.
 Необходимо протестировать класс путем написания подклассов до того, как он буде выпущен.
 
-Конструкторы класса не должны вызывать методы, которые могут быть переопределены, не напрямую и не косвенно.
+Конструкторы класса не должны вызывать методы, которые могут быть переопределены. Не напрямую и не косвенно.
 
 Если родительский класс реализовывает интерфейс `Cloneable` или `Serializable`, то ни методу `clone`, ни
-методы `readObject` не разрешается вызывать методы, которые могут быть перекрыты, ни непосредственно, ни косвенно. Также
-эти методы должны иметь модификатор доступа `protected`.
+методу `readObject` не разрешается вызывать методы, которые могут быть переопределены, ни непосредственно, ни косвенно.
+Также эти методы должны иметь модификатор доступа `protected`.
 
 Если класс не предполагается для наследования, то лучше запретить наследование данного класса:
 
@@ -974,31 +974,32 @@ public class ForwardingSet<E> implements Set<E> {
 
 ```java
 // Concrete implementation built atop skeletal implementation
-public class IntArrays {
-    static List<Integer> intArrayAsList(int[] a) {
-        Objects.requireNonNull(a);
+public abstract class AbstractMapEntry<K, V> implements Map.Entry<K, V> {
+  // Записи в изменяемом отображении должны перекрывать этот метод
+  @Override
+  public V setValue(V value) {
+    throw new UnsupportedOperationException();
+  }
 
-        // The diamond operator is only legal here in Java 9 and later
-        // If you're using an earlier release, specify <Integer>
-        return new AbstractList<>() {
-            @Override
-            public Integer get(int i) {
-                return a[i]; // Autoboxing (Item 6)
-            }
+  // Реализует общий контракт Map.Entry.equals
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof Map.Entry)) return false;
+    Map.Entry<?, ?> e = (Map.Entry) o;
+    return Objects.equals(e.getKeyO, getKeyO) && Objects.equals(e.getValue(), getValue());
+  }
 
-            @Override
-            public Integer set(int i, Integer val) {
-                int oldVal = a[i];
-                a[i] = val; // Auto-unboxing
-                return oldVal; // Autoboxing
-            }
+  // Реализует общий контракт Map.Entry.hashCode
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(getKey()) ^ Objects.hashCode(getValue());
+  }
 
-            @Override
-            public int size() {
-                return a.length;
-            }
-        };
-    }
+  @Override
+  public String toString() {
+    return getKeyO + +getValue();
+  }
 }
 
 ```

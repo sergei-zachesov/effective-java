@@ -1383,7 +1383,7 @@ public enum Planet {
 
 ```
 
-Если применение `enum` связано с определенным классом верхнего уроня, оно должно быть классом-членом класса верхнего
+Если применение `enum` связано с определенными классами верхнего уроня, оно должно быть классом-членом класса верхнего
 уровня ([Item 24](#410-предпочитайте-вложенный-статический-класс-вложенному-внутреннему-классу-item-24)).
 
 Можно связать поведение с константами. Для этого нужно объявить абстрактный метод в типе перечисления и перекрыть его
@@ -2285,12 +2285,15 @@ public final class Period {
 Атака - изменение внутренних данных:
 
 ```java
-        Date start = new Date();
-Date end = new Date();
-Period p = new Period(start, end);
-        end.
+public class Example {
+  void method() {
 
-setYear(78); // Modifies internals of p!
+    Date start = new Date();
+    Date end = new Date();
+    Period p = new Period(start, end);
+    end.setYear(78); // Modifies internals of p!
+  }
+}
 
 ```
 
@@ -2319,16 +2322,15 @@ public Period(Date start, Date end) {
 Вторая атака - изменение внутренних данных, через методы доступа:
 
 ```java
-        Date start = new Date();
-Date end = new Date();
-p=new
+public class Example {
+  void method() {
+    Date start = new Date();
+    Date end = new Date();
+    p = new Period(start, end);
 
-Period(start, end);
-        p.
-
-end().
-
-setYear(78);  // Modifies internals of p!
+    p.end().setYear(78); // Modifies internals of p!
+  }
+}
 
 ```
 
